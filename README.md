@@ -8,7 +8,9 @@ Not affiliated with Realistic Skies — fan companion tool.
 
 ## Use
 
-Open [index.html](index.html) in a browser, or use GitHub Pages once published.
+**Live:** https://g1llez.github.io/sailwind-real-almanac/
+
+Or open [index.html](index.html) locally in a browser.
 
 ## Requires
 

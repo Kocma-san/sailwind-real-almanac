@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sailwind Real Almanac → Desmos LOP</title>
+  <title>Sailwind Real Almanac</title>
   <style>
     :root {
       --bg: #0b1220;
@@ -113,6 +113,7 @@
     .ok { color: var(--ok); }
     .accent { color: var(--accent); }
     .muted { color: var(--muted); }
+    .sub a { display: block; margin: 0.15rem 0; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     th, td { border-bottom: 1px solid var(--line); padding: 0.35rem 0.4rem; text-align: left; }
     th { color: var(--muted); font-weight: 600; }
@@ -139,11 +140,10 @@
 </head>
 <body>
 <main>
-  <h1>Real Almanac → Desmos Line of Position</h1>
+  <h1>Sailwind Real Almanac</h1>
   <p class="sub">
-    <a href="https://www.desmos.com/calculator/dml4fdrber" target="_blank" rel="noopener">Desmos LOP</a>
-    · <span class="pill">Real</span> sky
-    · <a href="https://www.astronexus.com/projects/hyg" target="_blank" rel="noopener">HYG</a>
+    <a href="https://www.desmos.com/calculator/dml4fdrber" target="_blank" rel="noopener">Line of position - Desmos</a>
+    <a href="https://github.com/KingCam77/Realistic-Skies" target="_blank" rel="noopener">Realistic Skies</a>
   </p>
 
   <section class="card">
@@ -156,7 +156,7 @@
       </div>
       <div>
         <label for="hour">Hour</label>
-        <input id="hour" type="number" value="20" min="0" max="23" />
+        <input id="hour" type="number" value="0" min="0" max="23" />
       </div>
       <div>
         <label for="minute">Minute</label>
@@ -170,7 +170,7 @@
     <div class="row">
       <div>
         <label for="yearLen">Year length</label>
-        <input id="yearLen" type="number" value="92" min="1" />
+        <input id="yearLen" type="number" value="365" min="1" />
       </div>
       <div>
         <label for="siderial">Sidereal rotation</label>
@@ -181,7 +181,7 @@
       </div>
       <div>
         <label for="drLat">DR Latitude (°)</label>
-        <input id="drLat" type="number" step="0.01" value="35" />
+        <input id="drLat" type="number" step="0.01" value="0" />
       </div>
       <div>
         <label for="drLon">DR Longitude (°)</label>
@@ -191,7 +191,7 @@
     <div class="row">
       <div>
         <label for="epochYear">Stellarium year (epoch Sep 22)</label>
-        <input id="epochYear" type="number" value="2025" min="1900" max="2100" />
+        <input id="epochYear" type="number" value="" min="1900" max="2100" />
       </div>
     </div>
     <div class="out" id="ariesOut">…</div>
@@ -199,22 +199,8 @@
 
   <section class="card">
     <h2>2. Sights (3 Desmos targets)</h2>
-    <p class="hint">Click a card to activate it (catalog → that target). Altitude = degrees + arcminutes.</p>
+    <p class="hint">Pick a star and altitude per sight. Altitude = degrees + arcminutes.</p>
     <div class="readings" id="readings"></div>
-  </section>
-
-  <section class="card">
-    <h2>Catalog → active target</h2>
-    <div style="overflow:auto; max-height:420px;">
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th><th>Mag</th><th>SHA</th><th>Dec</th><th>Const</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
   </section>
 </main>
 
@@ -316,7 +302,7 @@ function formatLocalStamp(ms) {
   };
 }
 
-const STORAGE_KEY = "sailwind-real-almanac-v2";
+const STORAGE_KEY = "sailwind-real-almanac-v3";
 const N = 3;
 let activeReading = 0;
 let syncingFromGlobal = false;
@@ -332,7 +318,6 @@ const drLonEl = document.getElementById("drLon");
 const epochYearEl = document.getElementById("epochYear");
 const ariesOut = document.getElementById("ariesOut");
 const readingsEl = document.getElementById("readings");
-const tbody = document.getElementById("tbody");
 
 const globalFields = {
   day: dayEl, hour: hourEl, minute: minuteEl, second: secondEl,
@@ -373,7 +358,7 @@ function buildReadingCard(i) {
     <label>Star</label>
     <select data-k="star"></select>
     <div class="row-3">
-      <div><label>H</label><input data-k="hour" type="number" min="0" max="23" value="20" /></div>
+      <div><label>H</label><input data-k="hour" type="number" min="0" max="23" value="0" /></div>
       <div><label>M</label><input data-k="minute" type="number" min="0" max="59" value="0" /></div>
       <div><label>S</label><input data-k="second" type="number" min="0" max="59" value="0" /></div>
     </div>
@@ -613,17 +598,6 @@ if (!epochYearEl.value) epochYearEl.value = String(new Date().getFullYear());
 
 for (let i = 0; i < N; i++) buildReadingCard(i);
 setActiveReading(0);
-
-stars.forEach((s, i) => {
-  const tr = document.createElement("tr");
-  tr.innerHTML = `<td>${s.name}</td><td>${s.mag.toFixed(2)}</td><td>${degToDesmos(s.sha)}</td><td>${degToDesmos(s.dec)}</td><td>${s.con || ""}</td>`;
-  tr.addEventListener("click", () => {
-    readings[activeReading].star.value = String(i);
-    saveState();
-    refresh();
-  });
-  tbody.appendChild(tr);
-});
 
 loadState();
 
