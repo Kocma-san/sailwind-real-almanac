@@ -4,6 +4,25 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sailwind Real Almanac</title>
+  <!-- Google Analytics (GA4): paste your Measurement ID, or leave empty to disable. -->
+  <script>
+    window.GA_MEASUREMENT_ID = "G-PYPBVK4GBW"; // e.g. "G-XXXXXXXXXX"
+  </script>
+  <script>
+    (function () {
+      var id = window.GA_MEASUREMENT_ID;
+      if (!id || id.indexOf("G-") !== 0) return;
+      var s = document.createElement("script");
+      s.async = true;
+      s.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(id);
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { dataLayer.push(arguments); }
+      window.gtag = gtag;
+      gtag("js", new Date());
+      gtag("config", id);
+    })();
+  </script>
   <style>
     :root {
       --bg: #0b1220;
@@ -13,7 +32,9 @@
       --accent: #6ec8ff;
       --line: #24314d;
       --ok: #7dffa3;
+      --guide-w: 260px;
     }
+    html.guide-collapsed { --guide-w: 2.75rem; }
     * { box-sizing: border-box; }
     body {
       margin: 0;
@@ -23,31 +44,65 @@
       line-height: 1.45;
     }
     main {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 1.5rem;
+      max-width: none;
+      margin: 0;
+      padding: 1rem 1.1rem 1.5rem;
     }
+    .top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.5rem 1.25rem;
+      margin-bottom: 0.85rem;
+    }
+    .top h1 { margin: 0; font-size: 1.35rem; }
+    .top .links { display: flex; flex-wrap: wrap; gap: 0.65rem 1rem; }
     .layout {
       display: grid;
-      grid-template-columns: minmax(220px, 280px) 1fr;
-      gap: 1.25rem;
+      grid-template-columns: var(--guide-w) minmax(300px, 1fr) minmax(420px, 1.15fr);
+      gap: 0.9rem;
       align-items: start;
-    }
-    @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; }
-      .row, .row-3 { grid-template-columns: 1fr 1fr; }
-      .readings { grid-template-columns: 1fr !important; }
+      min-height: calc(100vh - 5rem);
     }
     .guide {
       position: sticky;
-      top: 1rem;
+      top: 0.65rem;
+      max-height: calc(100vh - 1.3rem);
+      overflow: auto;
       font-size: 0.82rem;
       color: var(--muted);
+      padding: 0.75rem;
     }
-    .guide h2 {
-      margin-top: 0;
+    .guide-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.35rem;
+      margin-bottom: 0.5rem;
+    }
+    .guide-head h2 {
+      margin: 0;
       color: var(--ink);
+      font-size: 1.05rem;
     }
+    html.guide-collapsed .guide-head h2,
+    html.guide-collapsed .guide-body { display: none; }
+    html.guide-collapsed .guide { padding: 0.4rem; overflow: visible; }
+    html.guide-collapsed .guide-head { justify-content: center; margin: 0; }
+    .btn-icon {
+      border: 1px solid var(--line);
+      background: #152038;
+      color: var(--accent);
+      border-radius: 6px;
+      width: 1.85rem;
+      height: 1.85rem;
+      padding: 0;
+      cursor: pointer;
+      font-size: 0.95rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .btn-icon:hover { border-color: var(--accent); }
     .guide ol {
       margin: 0;
       padding-left: 1.15rem;
@@ -65,16 +120,14 @@
       border-top: 1px solid var(--line);
       font-size: 0.78rem;
     }
-    h1 { font-size: 1.45rem; margin: 0 0 0.35rem; }
-    h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+    h2 { font-size: 1.05rem; margin: 0 0 0.65rem; }
     h3 { font-size: 0.95rem; margin: 0 0 0.5rem; color: var(--accent); }
-    .sub { color: var(--muted); margin-bottom: 1.25rem; }
     .card {
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 10px;
-      padding: 1rem;
-      margin-bottom: 1rem;
+      padding: 0.85rem;
+      margin-bottom: 0.75rem;
     }
     .card.active-reading {
       border-color: var(--accent);
@@ -91,18 +144,11 @@
       margin-bottom: 0.55rem;
     }
     .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
-    .row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
     .row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
-    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    @media (max-width: 900px) {
-      .layout { grid-template-columns: 1fr; }
-      .row, .row-3, .row-4 { grid-template-columns: 1fr 1fr; }
-      .readings { grid-template-columns: 1fr !important; }
-    }
     .readings {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.75rem;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.65rem;
     }
     .out {
       font-family: ui-monospace, Consolas, monospace;
@@ -151,23 +197,9 @@
     .btn-copy.copied { color: var(--ok); border-color: var(--ok); }
     .star-tag { color: var(--muted); font-size: 0.78rem; margin-bottom: 0.35rem; }
     .ok { color: var(--ok); }
-    .accent { color: var(--accent); }
     .muted { color: var(--muted); }
-    .sub a { display: block; margin: 0.15rem 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { border-bottom: 1px solid var(--line); padding: 0.35rem 0.4rem; text-align: left; }
-    th { color: var(--muted); font-weight: 600; }
-    tr:hover { background: rgba(110, 200, 255, 0.06); cursor: pointer; }
-    .hint { font-size: 0.85rem; color: var(--muted); margin: 0.35rem 0 0; }
+    .hint { font-size: 0.85rem; color: var(--muted); margin: 0.35rem 0 0.55rem; }
     a { color: var(--accent); }
-    .pill {
-      display: inline-block;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 0.1rem 0.55rem;
-      font-size: 0.8rem;
-      color: var(--muted);
-    }
     .alt-sep {
       display: flex;
       align-items: center;
@@ -176,50 +208,178 @@
     }
     .alt-sep input { margin-bottom: 0; }
     .alt-sep span { color: var(--muted); white-space: nowrap; font-size: 0.85rem; }
+
+    .desmos-panel {
+      position: sticky;
+      top: 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      min-height: calc(100vh - 1.3rem);
+      max-height: calc(100vh - 1.3rem);
+      margin-bottom: 0;
+      padding: 0.65rem;
+    }
+    .desmos-panel h2 { margin-bottom: 0.15rem; }
+    .desmos-status {
+      font-size: 0.78rem;
+      color: var(--muted);
+      min-height: 1.1em;
+    }
+    .desmos-status.err { color: #ff8f8f; }
+    .desmos-status.ok { color: var(--ok); }
+    .desmos-gate {
+      flex: 1;
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      text-align: center;
+      padding: 1.25rem;
+      border-radius: 8px;
+      border: 1px dashed var(--line);
+      background: #070c16;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .desmos-gate a.cta {
+      display: inline-block;
+      margin-top: 0.35rem;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--accent);
+      background: #152038;
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .desmos-gate a.cta:hover { background: #1a2a4a; }
+    .desmos-gate .hint { font-size: 0.8rem; max-width: 22rem; }
+    #desmosWrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      min-height: 520px;
+    }
+    #desmosWrap[hidden] { display: none !important; }
+    .desmos-gate[hidden] { display: none !important; }
+    .api-key-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 0.5rem;
+      align-items: end;
+    }
+    .api-key-row .btn-apply {
+      margin-bottom: 0.55rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      background: #152038;
+      color: var(--accent);
+      cursor: pointer;
+      white-space: nowrap;
+      height: calc(0.8rem * 1.45 + 0.8rem + 2px);
+    }
+    .api-key-row .btn-apply:hover { border-color: var(--accent); }
+    #desmos {
+      flex: 0 0 520px;
+      width: 100%;
+      height: 520px;
+      min-height: 520px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: #f7f7f7;
+      position: relative;
+    }
+    /* Desmos root must fill the host; flex parents often leave it at 0×0. */
+    #desmos .dcg-wrapper,
+    #desmos .dcg-container,
+    #desmos .dcg-calculator-api-container {
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute !important;
+      inset: 0 !important;
+    }
+    .fix-out {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.82rem;
+      background: #070c16;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.5rem 0.65rem;
+    }
+    .fix-out .lab { color: var(--muted); }
+    .fix-out .val { color: var(--ok); }
+
+    @media (max-width: 1280px) {
+      .layout {
+        grid-template-columns: var(--guide-w) 1fr;
+      }
+      .desmos-panel {
+        grid-column: 1 / -1;
+        position: relative;
+        top: auto;
+        min-height: 520px;
+        max-height: none;
+        height: 560px;
+      }
+    }
+    @media (max-width: 1100px) {
+      .readings { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .layout { grid-template-columns: 1fr; }
+      .guide { position: relative; top: auto; max-height: none; }
+      html.guide-collapsed .layout { grid-template-columns: 1fr; }
+      .row, .row-4 { grid-template-columns: 1fr 1fr; }
+    }
   </style>
 </head>
 <body>
 <main>
-  <h1>Sailwind Real Almanac</h1>
-  <p class="sub">
-    <a href="https://www.desmos.com/calculator/dml4fdrber" target="_blank" rel="noopener">Line of position - Desmos</a>
-    <a href="https://github.com/KingCam77/Realistic-Skies" target="_blank" rel="noopener">Realistic Skies</a>
-    <a href="https://stellarium-web.org/" target="_blank" rel="noopener">Stellarium Web</a>
-  </p>
+  <div class="top">
+    <h1>Sailwind Real Almanac</h1>
+    <div class="links">
+      <a href="https://www.desmos.com/calculator/dml4fdrber" target="_blank" rel="noopener">LOP Desmos (original)</a>
+      <a href="https://github.com/KingCam77/Realistic-Skies" target="_blank" rel="noopener">Realistic Skies</a>
+      <a href="https://stellarium-web.org/" target="_blank" rel="noopener">Stellarium Web</a>
+    </div>
+  </div>
 
   <div class="layout">
-    <aside class="guide card">
-      <h2>Guide</h2>
-      <ol>
-        <li>Enter current date / time</li>
-        <li>Enter best dead reckoning (DR)</li>
-        <li>Choose <strong>2 stars</strong> (~90° apart) or <strong>3 stars</strong> (~120° apart), heights ~15–65°.<br />
-          Tip: open <a href="https://stellarium-web.org/" target="_blank" rel="noopener">Stellarium Web</a> with your DR lat/lon and the date/time shown below for a sky preview and to pick stars.</li>
-        <li>Take a fix with the quintant for each star and adjust day / time or reading (each sight has its own day for midnight crossings)</li>
-        <li>
-          Open Desmos
-          <ul>
-            <li>Enter DR lat / long</li>
-            <li>
-              For each reading:
-              <ul>
-                <li><strong>Observed altitude of the target</strong> — Sight line 1</li>
-                <li><strong>Aestrin Hour Angle of Aries</strong> — Sight line 2<br />(from this page, not the in-game New-sky almanac)</li>
-                <li><strong>Sidereal Hour Angle of the target</strong> — Sight line 3</li>
-                <li><strong>Declination of the Target</strong> — Sight line 4</li>
-              </ul>
-            </li>
-          </ul>
-        </li>
-        <li>Your estimated position is on Desmos lines <strong>75–76</strong></li>
-      </ol>
-      <p class="note">Use <strong>stars</strong> with this tool (not planets). Planet tables in the in-game almanac are for the mod’s solar system / New sky workflow; this page only has fixed star SHA/Dec for the Real skybox.</p>
+    <aside class="guide card" id="guide">
+      <div class="guide-head">
+        <h2>Guide</h2>
+        <button type="button" class="btn-icon" id="guideToggle" title="Collapse / expand guide" aria-label="Toggle guide">«</button>
+      </div>
+      <div class="guide-body">
+        <ol>
+          <li>Enter current date / time</li>
+          <li>Enter best dead reckoning (DR)</li>
+          <li>Choose <strong>2 stars</strong> (~90° apart) or <strong>3 stars</strong> (~120° apart), heights ~15–65°.<br />
+            Tip: open <a href="https://stellarium-web.org/" target="_blank" rel="noopener">Stellarium Web</a> with your DR lat/lon and the date/time shown below for a sky preview and to pick stars.</li>
+          <li>Take a fix with the quintant for each star and adjust day / time or reading (each sight has its own day for midnight crossings)</li>
+          <li>
+            The graph on the right syncs DR + sight values automatically.
+            <ul>
+              <li>Drag the triangle point <strong>(a, b)</strong> onto the LOP intersection</li>
+              <li>Estimated position appears under the graph (and Desmos lines 75–76)</li>
+            </ul>
+          </li>
+        </ol>
+        <p class="note">Use <strong>stars</strong> with this tool (not planets). Planet tables in the in-game almanac are for the mod’s solar system / New sky workflow; this page only has fixed star SHA/Dec for the Real skybox.</p>
+        <p class="note">The Desmos graph needs <strong>your own free API key</strong> (section 1). Create one at <a href="https://www.desmos.com/my-api" target="_blank" rel="noopener">desmos.com/my-api</a> — it stays in your browser only.</p>
+      </div>
     </aside>
 
     <div class="content">
       <section class="card">
         <h2>1. Global time + DR</h2>
-        <p class="hint">Global h/m/s fills all 3 sights; refine each sight afterward.</p>
+        <p class="hint">Global h/m/s fills all 3 sights; refine each sight afterward. Graph updates as you type.</p>
         <div class="row">
           <div>
             <label for="day">Day</label>
@@ -265,6 +425,14 @@
             <input id="epochYear" type="number" value="" min="1900" max="2100" />
           </div>
         </div>
+        <div>
+          <label for="desmosApiKey">Desmos API key</label>
+          <div class="api-key-row">
+            <input id="desmosApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key from desmos.com/my-api" />
+            <button type="button" class="btn-apply" id="desmosApiApply">Apply</button>
+          </div>
+          <p class="hint" style="margin-top:0">Stored only in this browser. Free key: <a href="https://www.desmos.com/my-api" target="_blank" rel="noopener">desmos.com/my-api</a> (add domain <code>g1llez.github.io</code> or <code>localhost</code>).</p>
+        </div>
         <div class="out" id="ariesOut">…</div>
       </section>
 
@@ -274,10 +442,28 @@
         <div class="readings" id="readings"></div>
       </section>
     </div>
+
+    <aside class="desmos-panel card">
+      <h2>Line of position</h2>
+      <div class="desmos-gate" id="desmosGate">
+        <div>Enter your Desmos API key in <strong>1. Global</strong> to load the LOP graph here.</div>
+        <a class="cta" href="https://www.desmos.com/my-api" target="_blank" rel="noopener">Create a free Desmos API key</a>
+        <div class="hint">Personal / school project key. Register this site’s domain when Desmos asks.</div>
+      </div>
+      <div id="desmosWrap" hidden>
+        <div class="desmos-status" id="desmosStatus"></div>
+        <div id="desmos"></div>
+        <div class="fix-out" id="fixOut">
+          <span class="lab">Estimated fix</span> —
+          drag <span class="val">(a, b)</span> on the graph (not updated by typing sights alone)
+        </div>
+      </div>
+    </aside>
   </div>
 </main>
 
 <script src="nav_stars.js"></script>
+<script src="desmos-lop-state.js"></script>
 <script>
 function mod360(x) {
   return ((x % 360) + 360) % 360;
@@ -294,13 +480,6 @@ function ghaAriesMinSec(minute, second, yearLen, siderial) {
   const frac = minute / 60 + second / 3600;
   let st = siderial ? (frac + frac / yearLen) : frac;
   return mod360(st * 15);
-}
-
-function ariesTotal(day, hour, minute, second, yearLen, siderial) {
-  return mod360(
-    ghaAriesAtHour(day, hour, yearLen, siderial) +
-    ghaAriesMinSec(minute, second, yearLen, siderial)
-  );
 }
 
 function degToDisp(val, latlike = false, tenths = true) {
@@ -333,10 +512,9 @@ function degToDesmosPaste(val) {
   const deg = Math.floor(abs);
   const arcmin = (abs - deg) * 60;
   const core = `${deg}+\\frac{${arcmin.toFixed(2)}}{60}`;
-  return neg ? `-(${core})` : core;
+  return neg ? `-\\left(${core}\\right)` : core;
 }
 
-/** Aries tutorial form: table + corr, e.g. 12+\frac{3.10}{60}+0+\frac{7.50}{60} */
 function ariesToDesmos(base, corr) {
   return `${degToDesmos(base)} + ${degToDesmos(corr)}`;
 }
@@ -375,10 +553,25 @@ function formatLocalStamp(ms) {
   };
 }
 
+/** localStorage key for the user's Desmos API key (never committed). */
+const DESMOS_KEY_STORAGE = "desmos-api-key";
+
 const STORAGE_KEY = "sailwind-real-almanac-v4";
+const GUIDE_KEY = "sailwind-real-almanac-guide-collapsed";
 const N = 3;
 let activeReading = 0;
 let syncingFromGlobal = false;
+
+/** Expression ids from https://www.desmos.com/calculator/dml4fdrber */
+const DESMOS_IDS = {
+  lat: "3",
+  lon: "38",
+  sights: [
+    { ho: "14", aha: "4", sha: "48", dec: "2" },
+    { ho: "91", aha: "93", sha: "95", dec: "97" },
+    { ho: "123", aha: "125", sha: "127", dec: "129" },
+  ],
+};
 
 const dayEl = document.getElementById("day");
 const hourEl = document.getElementById("hour");
@@ -389,8 +582,15 @@ const siderialEl = document.getElementById("siderial");
 const drLatEl = document.getElementById("drLat");
 const drLonEl = document.getElementById("drLon");
 const epochYearEl = document.getElementById("epochYear");
+const desmosApiKeyEl = document.getElementById("desmosApiKey");
+const desmosApiApply = document.getElementById("desmosApiApply");
 const ariesOut = document.getElementById("ariesOut");
 const readingsEl = document.getElementById("readings");
+const desmosStatus = document.getElementById("desmosStatus");
+const desmosGate = document.getElementById("desmosGate");
+const desmosWrap = document.getElementById("desmosWrap");
+const fixOut = document.getElementById("fixOut");
+const guideToggle = document.getElementById("guideToggle");
 
 const globalFields = {
   day: dayEl, hour: hourEl, minute: minuteEl, second: secondEl,
@@ -403,6 +603,31 @@ const stars = ((window.NAV_STARS && window.NAV_STARS.stars) || [])
   .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
 
 const readings = [];
+let desmosCalc = null;
+let desmosReady = false;
+let desmosSyncTimer = null;
+let desmosLoadedKey = null;
+let desmosInitInFlight = false;
+let helperA = null;
+let helperB = null;
+let helperLon = null;
+let helperLat = null;
+
+function setGuideCollapsed(collapsed) {
+  document.documentElement.classList.toggle("guide-collapsed", collapsed);
+  guideToggle.textContent = collapsed ? "»" : "«";
+  guideToggle.title = collapsed ? "Expand guide" : "Collapse guide";
+  try { localStorage.setItem(GUIDE_KEY, collapsed ? "1" : "0"); } catch (_) {}
+}
+
+guideToggle.addEventListener("click", () => {
+  setGuideCollapsed(!document.documentElement.classList.contains("guide-collapsed"));
+});
+try {
+  setGuideCollapsed(localStorage.getItem(GUIDE_KEY) === "1");
+} catch (_) {
+  setGuideCollapsed(false);
+}
 
 function fillStarSelect(select, selectedName) {
   select.innerHTML = "";
@@ -547,6 +772,19 @@ function renderCopyRows(container, rows) {
   });
 }
 
+function sightPayload(r, yearLen, siderial) {
+  const d = +r.day.value || 0;
+  const h = +r.hour.value || 0;
+  const mi = +r.minute.value || 0;
+  const se = +r.second.value || 0;
+  const baseR = ghaAriesAtHour(d, h, yearLen, siderial);
+  const corrR = ghaAriesMinSec(mi, se, yearLen, siderial);
+  const starIdx = r.star.value === "" ? -1 : +r.star.value;
+  const star = starIdx >= 0 ? stars[starIdx] : null;
+  const alt = partsToDeg(r.altDeg.value, r.altMin.value);
+  return { baseR, corrR, star, alt };
+}
+
 function refresh() {
   const day = +dayEl.value || 0;
   const hour = +hourEl.value || 0;
@@ -569,17 +807,8 @@ function refresh() {
     `<span class="ok">Stellarium</span> (${stamp.tz})  ${latLabel}, ${lonLabel}\n` +
     `  <span class="ok">${stamp.line}</span>`;
 
-  readings.forEach((r, i) => {
-    const d = +r.day.value || 0;
-    const h = +r.hour.value || 0;
-    const mi = +r.minute.value || 0;
-    const se = +r.second.value || 0;
-    const baseR = ghaAriesAtHour(d, h, yearLen, siderial);
-    const corrR = ghaAriesMinSec(mi, se, yearLen, siderial);
-    const starIdx = r.star.value === "" ? -1 : +r.star.value;
-    const star = starIdx >= 0 ? stars[starIdx] : null;
-    const alt = partsToDeg(r.altDeg.value, r.altMin.value);
-
+  readings.forEach((r) => {
+    const { baseR, corrR, star, alt } = sightPayload(r, yearLen, siderial);
     renderCopyRows(r.out, [
       {
         n: "1", label: "Alt",
@@ -609,6 +838,269 @@ function refresh() {
       r.out.prepend(tag);
     }
   });
+
+  scheduleDesmosSync();
+}
+
+function scheduleDesmosSync() {
+  if (!desmosReady) return;
+  clearTimeout(desmosSyncTimer);
+  desmosSyncTimer = setTimeout(syncDesmos, 280);
+}
+
+function syncDesmos() {
+  if (!desmosCalc || !desmosReady) return;
+  const yearLen = +yearLenEl.value || 92;
+  const siderial = siderialEl.value === "1";
+  const lat = +drLatEl.value || 0;
+  const lon = +drLonEl.value || 0;
+  const exprs = [
+    { id: DESMOS_IDS.lat, latex: `l=${lat}` },
+    { id: DESMOS_IDS.lon, latex: `l_{o}=${lon}` },
+  ];
+
+  readings.forEach((r, i) => {
+    const ids = DESMOS_IDS.sights[i];
+    if (!ids) return;
+    const { baseR, corrR, star, alt } = sightPayload(r, yearLen, siderial);
+    exprs.push({ id: ids.aha, latex: `A_{HA${i + 1}}=${ariesToDesmosPaste(baseR, corrR)}` });
+    if (alt != null) {
+      exprs.push({ id: ids.ho, latex: `H_{o${i + 1}}=${degToDesmosPaste(alt)}` });
+    }
+    if (star) {
+      exprs.push({ id: ids.sha, latex: `S_{HA${i + 1}}=${degToDesmosPaste(star.sha)}` });
+      exprs.push({ id: ids.dec, latex: `D_{EC${i + 1}}=${degToDesmosPaste(star.dec)}` });
+    }
+  });
+
+  try {
+    desmosCalc.setExpressions(exprs);
+    updateFixReadout();
+    if (desmosStatus.classList.contains("ok")) {
+      desmosStatus.textContent =
+        "LOPs synced — drag green (a,b) on the triangle; fix below = DR + (a,b)";
+    }
+  } catch (err) {
+    desmosStatus.className = "desmos-status err";
+    desmosStatus.textContent = `Sync error: ${err.message || err}`;
+  }
+}
+
+function resizeDesmos() {
+  if (desmosCalc && typeof desmosCalc.resize === "function") {
+    try { desmosCalc.resize(); } catch (_) {}
+  }
+}
+
+function fmtCoord(v, isLat) {
+  if (v == null || Number.isNaN(v)) return "—";
+  const abs = Math.abs(v);
+  const hemi = isLat ? (v >= 0 ? "N" : "S") : (v >= 0 ? "E" : "W");
+  return `${abs.toFixed(4)}°${hemi}`;
+}
+
+function updateFixReadout() {
+  if (!helperLon || !helperLat) return;
+  const lon = helperLon.numericValue;
+  const lat = helperLat.numericValue;
+  const a = helperA && helperA.numericValue;
+  const b = helperB && helperB.numericValue;
+  if (lon == null || lat == null || Number.isNaN(lon) || Number.isNaN(lat)) {
+    fixOut.innerHTML =
+      `<span class="lab">Estimated fix</span> — drag <span class="val">(a, b)</span> onto the triangle`;
+    return;
+  }
+  const ab =
+    a != null && b != null && !Number.isNaN(a) && !Number.isNaN(b)
+      ? `  <span class="lab">Δ</span> <span class="val">(${a.toFixed(4)}, ${b.toFixed(4)})</span>`
+      : "";
+  fixOut.innerHTML =
+    `<span class="lab">Estimated fix</span> ` +
+    `<span class="val">${fmtCoord(lat, true)}</span> ` +
+    `<span class="val">${fmtCoord(lon, false)}</span>` +
+    ab;
+}
+
+function resolveDesmosApiKey() {
+  return (desmosApiKeyEl.value || "").trim();
+}
+
+function persistDesmosApiKey(key) {
+  try {
+    if (key) localStorage.setItem(DESMOS_KEY_STORAGE, key);
+    else localStorage.removeItem(DESMOS_KEY_STORAGE);
+  } catch (_) {}
+}
+
+function hydrateDesmosApiKeyField() {
+  const q = new URLSearchParams(location.search).get("apiKey");
+  if (q) {
+    desmosApiKeyEl.value = q;
+    persistDesmosApiKey(q.trim());
+    return;
+  }
+  try {
+    desmosApiKeyEl.value = localStorage.getItem(DESMOS_KEY_STORAGE) || "";
+  } catch (_) {
+    desmosApiKeyEl.value = "";
+  }
+}
+
+function showDesmosGate(messageHtml) {
+  desmosReady = false;
+  desmosWrap.hidden = true;
+  desmosGate.hidden = false;
+  desmosGate.innerHTML =
+    (messageHtml ||
+      `<div>Enter your Desmos API key in <strong>1. Global</strong> to load the LOP graph here.</div>`) +
+    `<a class="cta" href="https://www.desmos.com/my-api" target="_blank" rel="noopener">Create a free Desmos API key</a>` +
+    `<div class="hint">Personal / school project key. Register this site’s domain when Desmos asks.</div>`;
+}
+
+function showDesmosWrap() {
+  desmosGate.hidden = true;
+  desmosWrap.hidden = false;
+}
+
+function loadDesmosScript(apiKey) {
+  return new Promise((resolve, reject) => {
+    if (window.Desmos && desmosLoadedKey === apiKey) {
+      resolve();
+      return;
+    }
+    if (window.Desmos && desmosLoadedKey && desmosLoadedKey !== apiKey) {
+      reject(new Error("API key changed — reloading page"));
+      location.reload();
+      return;
+    }
+    const existing = document.querySelector("script[data-desmos-api]");
+    if (existing) existing.remove();
+    const s = document.createElement("script");
+    s.dataset.desmosApi = "1";
+    s.src = `https://www.desmos.com/api/v1.11/calculator.js?apiKey=${encodeURIComponent(apiKey)}`;
+    s.async = true;
+    s.onload = () => {
+      desmosLoadedKey = apiKey;
+      resolve();
+    };
+    s.onerror = () => reject(new Error("Desmos rejected this API key (script failed to load)"));
+    document.head.appendChild(s);
+  });
+}
+
+async function loadLopState() {
+  if (window.DESMOS_LOP_GRAPH && window.DESMOS_LOP_GRAPH.state) {
+    return window.DESMOS_LOP_GRAPH.state;
+  }
+  try {
+    const r = await fetch("data/desmos-lop-state.json", { cache: "force-cache" });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json();
+    return j.state || j;
+  } catch (err) {
+    throw new Error(`Could not load LOP graph (${err.message})`);
+  }
+}
+
+async function initDesmos() {
+  const apiKey = resolveDesmosApiKey();
+  if (!apiKey) {
+    showDesmosGate();
+    return;
+  }
+  if (desmosReady && desmosLoadedKey === apiKey) return;
+  if (desmosInitInFlight) return;
+  desmosInitInFlight = true;
+  persistDesmosApiKey(apiKey);
+  showDesmosWrap();
+  desmosStatus.className = "desmos-status";
+  desmosStatus.textContent = "Loading Desmos…";
+  try {
+    await loadDesmosScript(apiKey);
+    if (!window.Desmos || typeof Desmos.GraphingCalculator !== "function") {
+      throw new Error("Desmos API did not initialize (invalid key or domain not allowed?)");
+    }
+    // Let the panel get a real size before creating the calculator (avoids blank white canvas).
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const rawState = await loadLopState();
+    const state = JSON.parse(JSON.stringify(rawState));
+    const elt = document.getElementById("desmos");
+    if (desmosCalc) {
+      try { desmosCalc.destroy(); } catch (_) {}
+      desmosCalc = null;
+      elt.innerHTML = "";
+    }
+    desmosCalc = Desmos.GraphingCalculator(elt, {
+      // Graph only — expression list often collapses the plot to 0 height in flex layouts.
+      expressions: false,
+      settingsMenu: true,
+      zoomButtons: true,
+      expressionsTopbar: false,
+      border: false,
+      lockViewport: false,
+      authorFeatures: false,
+    });
+    desmosCalc.setState(state, { allowUndo: false });
+    try {
+      desmosCalc.updateSettings({ expressions: false, expressionsTopbar: false });
+    } catch (_) {}
+    // Ensure a usable view around the LOP triangle (DR-relative Δlon/Δlat).
+    try {
+      desmosCalc.setMathBounds({ left: -1.5, right: 2.5, bottom: -1.5, top: 2 });
+    } catch (_) {}
+    helperA = desmosCalc.HelperExpression({ latex: "a" });
+    helperB = desmosCalc.HelperExpression({ latex: "b" });
+    helperLon = desmosCalc.HelperExpression({ latex: "l_{o}+a" });
+    helperLat = desmosCalc.HelperExpression({ latex: "l+b" });
+    [helperA, helperB, helperLon, helperLat].forEach((h) => {
+      h.observe("numericValue", updateFixReadout);
+    });
+    desmosReady = true;
+    desmosStatus.className = "desmos-status ok";
+    desmosStatus.textContent =
+      "LOPs sync from sights — drag the point (a,b) on the triangle; fix below = DR + (a,b)";
+    syncDesmos();
+    resizeDesmos();
+    setTimeout(resizeDesmos, 50);
+    setTimeout(resizeDesmos, 250);
+    setTimeout(resizeDesmos, 1000);
+    updateFixReadout();
+
+    if (!window.__desmosResizeObs && window.ResizeObserver) {
+      window.__desmosResizeObs = new ResizeObserver(() => resizeDesmos());
+      window.__desmosResizeObs.observe(elt);
+    }
+    window.addEventListener("resize", resizeDesmos);
+  } catch (err) {
+    desmosReady = false;
+    if (String(err.message || err).includes("reloading")) return;
+    showDesmosGate(
+      `<div><strong>Could not load Desmos.</strong> ${err.message || err}</div>` +
+      `<div class="hint">For local testing, register domain <code>localhost</code> (and/or <code>127.0.0.1</code>) on your key. Check the key in section 1, or create a new one:</div>`
+    );
+  } finally {
+    desmosInitInFlight = false;
+  }
+}
+
+function applyDesmosApiKey() {
+  const apiKey = resolveDesmosApiKey();
+  persistDesmosApiKey(apiKey);
+  if (!apiKey) {
+    if (desmosCalc) {
+      try { desmosCalc.destroy(); } catch (_) {}
+      desmosCalc = null;
+    }
+    desmosReady = false;
+    showDesmosGate();
+    return;
+  }
+  if (window.Desmos && desmosLoadedKey && desmosLoadedKey !== apiKey) {
+    location.reload();
+    return;
+  }
+  initDesmos();
 }
 
 function saveState() {
@@ -679,11 +1171,20 @@ if (!epochYearEl.value) epochYearEl.value = String(new Date().getFullYear());
 for (let i = 0; i < N; i++) buildReadingCard(i);
 setActiveReading(0);
 
+hydrateDesmosApiKeyField();
 loadState();
 
 Object.values(globalFields).forEach((el) => el.addEventListener("input", onGlobalInput));
+desmosApiApply.addEventListener("click", applyDesmosApiKey);
+desmosApiKeyEl.addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter") {
+    ev.preventDefault();
+    applyDesmosApiKey();
+  }
+});
 
 refresh();
+initDesmos();
 </script>
 </body>
 </html>
