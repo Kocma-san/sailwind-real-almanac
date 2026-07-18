@@ -92,9 +92,11 @@
     }
     .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
     .row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+    .row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
     .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     @media (max-width: 900px) {
-      .row, .row-3 { grid-template-columns: 1fr 1fr; }
+      .layout { grid-template-columns: 1fr; }
+      .row, .row-3, .row-4 { grid-template-columns: 1fr 1fr; }
       .readings { grid-template-columns: 1fr !important; }
     }
     .readings {
@@ -193,7 +195,7 @@
         <li>Enter best dead reckoning (DR)</li>
         <li>Choose <strong>2 stars</strong> (~90° apart) or <strong>3 stars</strong> (~120° apart), heights ~15–65°.<br />
           Tip: open <a href="https://stellarium-web.org/" target="_blank" rel="noopener">Stellarium Web</a> with your DR lat/lon and the date/time shown below for a sky preview and to pick stars.</li>
-        <li>Take a fix with the quintant for each star and adjust time or reading</li>
+        <li>Take a fix with the quintant for each star and adjust day / time or reading (each sight has its own day for midnight crossings)</li>
         <li>
           Open Desmos
           <ul>
@@ -373,7 +375,7 @@ function formatLocalStamp(ms) {
   };
 }
 
-const STORAGE_KEY = "sailwind-real-almanac-v3";
+const STORAGE_KEY = "sailwind-real-almanac-v4";
 const N = 3;
 let activeReading = 0;
 let syncingFromGlobal = false;
@@ -428,7 +430,8 @@ function buildReadingCard(i) {
     <h3>Sight ${i + 1}</h3>
     <label>Star</label>
     <select data-k="star"></select>
-    <div class="row-3">
+    <div class="row-4">
+      <div><label>Day</label><input data-k="day" type="number" min="0" value="1" /></div>
       <div><label>H</label><input data-k="hour" type="number" min="0" max="23" value="0" /></div>
       <div><label>M</label><input data-k="minute" type="number" min="0" max="59" value="0" /></div>
       <div><label>S</label><input data-k="second" type="number" min="0" max="59" value="0" /></div>
@@ -450,6 +453,7 @@ function buildReadingCard(i) {
   const refs = {
     card,
     star: starSel,
+    day: card.querySelector('[data-k="day"]'),
     hour: card.querySelector('[data-k="hour"]'),
     minute: card.querySelector('[data-k="minute"]'),
     second: card.querySelector('[data-k="second"]'),
@@ -461,7 +465,7 @@ function buildReadingCard(i) {
 
   card.addEventListener("pointerdown", () => setActiveReading(i));
   [
-    refs.star, refs.hour, refs.minute, refs.second, refs.altDeg, refs.altMin,
+    refs.star, refs.day, refs.hour, refs.minute, refs.second, refs.altDeg, refs.altMin,
   ].forEach((el) => {
     el.addEventListener("input", () => {
       setActiveReading(i);
@@ -479,10 +483,12 @@ function setActiveReading(i) {
 
 function copyGlobalTimeToReadings() {
   syncingFromGlobal = true;
+  const d = dayEl.value;
   const h = hourEl.value;
   const m = minuteEl.value;
   const s = secondEl.value;
   readings.forEach((r) => {
+    r.day.value = d;
     r.hour.value = h;
     r.minute.value = m;
     r.second.value = s;
@@ -564,10 +570,11 @@ function refresh() {
     `  <span class="ok">${stamp.line}</span>`;
 
   readings.forEach((r, i) => {
+    const d = +r.day.value || 0;
     const h = +r.hour.value || 0;
     const mi = +r.minute.value || 0;
     const se = +r.second.value || 0;
-    const baseR = ghaAriesAtHour(day, h, yearLen, siderial);
+    const baseR = ghaAriesAtHour(d, h, yearLen, siderial);
     const corrR = ghaAriesMinSec(mi, se, yearLen, siderial);
     const starIdx = r.star.value === "" ? -1 : +r.star.value;
     const star = starIdx >= 0 ? stars[starIdx] : null;
@@ -610,6 +617,7 @@ function saveState() {
     for (const [k, el] of Object.entries(globalFields)) data[k] = el.value;
     data.readings = readings.map((r) => ({
       starName: r.star.value === "" ? "" : (stars[+r.star.value]?.name || ""),
+      day: r.day.value,
       hour: r.hour.value,
       minute: r.minute.value,
       second: r.second.value,
@@ -635,6 +643,7 @@ function loadState() {
       data.readings.forEach((rd, i) => {
         if (!readings[i]) return;
         fillStarSelect(readings[i].star, rd.starName || "");
+        if (rd.day != null) readings[i].day.value = rd.day;
         if (rd.hour != null) readings[i].hour.value = rd.hour;
         if (rd.minute != null) readings[i].minute.value = rd.minute;
         if (rd.second != null) readings[i].second.value = rd.second;
@@ -652,7 +661,7 @@ function loadState() {
 
 function onGlobalInput(ev) {
   const id = ev?.target?.id;
-  if (id === "hour" || id === "minute" || id === "second") {
+  if (id === "day" || id === "hour" || id === "minute" || id === "second") {
     copyGlobalTimeToReadings();
   }
   saveState();
