@@ -23,9 +23,47 @@
       line-height: 1.45;
     }
     main {
-      max-width: 1100px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 1.5rem;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) 1fr;
+      gap: 1.25rem;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .row, .row-3 { grid-template-columns: 1fr 1fr; }
+      .readings { grid-template-columns: 1fr !important; }
+    }
+    .guide {
+      position: sticky;
+      top: 1rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .guide h2 {
+      margin-top: 0;
+      color: var(--ink);
+    }
+    .guide ol {
+      margin: 0;
+      padding-left: 1.15rem;
+    }
+    .guide li { margin: 0.45rem 0; }
+    .guide ul {
+      margin: 0.35rem 0 0.35rem 0.1rem;
+      padding-left: 1.1rem;
+    }
+    .guide li ul { margin-top: 0.25rem; }
+    .guide strong { color: var(--ink); font-weight: 600; }
+    .guide .note {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.78rem;
     }
     h1 { font-size: 1.45rem; margin: 0 0 0.35rem; }
     h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
@@ -146,62 +184,93 @@
     <a href="https://github.com/KingCam77/Realistic-Skies" target="_blank" rel="noopener">Realistic Skies</a>
   </p>
 
-  <section class="card">
-    <h2>1. Global time + DR</h2>
-    <p class="hint">Global h/m/s fills all 3 sights; refine each sight afterward.</p>
-    <div class="row">
-      <div>
-        <label for="day">Day</label>
-        <input id="day" type="number" value="1" min="0" />
-      </div>
-      <div>
-        <label for="hour">Hour</label>
-        <input id="hour" type="number" value="0" min="0" max="23" />
-      </div>
-      <div>
-        <label for="minute">Minute</label>
-        <input id="minute" type="number" value="0" min="0" max="59" />
-      </div>
-      <div>
-        <label for="second">Second</label>
-        <input id="second" type="number" value="0" min="0" max="59" />
-      </div>
-    </div>
-    <div class="row">
-      <div>
-        <label for="yearLen">Year length</label>
-        <input id="yearLen" type="number" value="365" min="1" />
-      </div>
-      <div>
-        <label for="siderial">Sidereal rotation</label>
-        <select id="siderial">
-          <option value="1" selected>On</option>
-          <option value="0">Off</option>
-        </select>
-      </div>
-      <div>
-        <label for="drLat">DR Latitude (°)</label>
-        <input id="drLat" type="number" step="0.01" value="0" />
-      </div>
-      <div>
-        <label for="drLon">DR Longitude (°)</label>
-        <input id="drLon" type="number" step="0.01" value="0" />
-      </div>
-    </div>
-    <div class="row">
-      <div>
-        <label for="epochYear">Stellarium year (epoch Sep 22)</label>
-        <input id="epochYear" type="number" value="" min="1900" max="2100" />
-      </div>
-    </div>
-    <div class="out" id="ariesOut">…</div>
-  </section>
+  <div class="layout">
+    <aside class="guide card">
+      <h2>Guide</h2>
+      <ol>
+        <li>Enter current date / time</li>
+        <li>Enter best dead reckoning (DR)</li>
+        <li>Choose <strong>2 stars</strong> (~90° apart) or <strong>3 stars</strong> (~120° apart), heights ~15–65°</li>
+        <li>Take a fix with the quintant for each star and adjust time or reading</li>
+        <li>
+          Open Desmos
+          <ul>
+            <li>Enter DR lat / long</li>
+            <li>
+              For each reading:
+              <ul>
+                <li><strong>Observed altitude of the target</strong> — Sight line 1</li>
+                <li><strong>Aestrin Hour Angle of Aries</strong> — Sight line 2<br />(from this page, not the in-game New-sky almanac)</li>
+                <li><strong>Sidereal Hour Angle of the target</strong> — Sight line 3</li>
+                <li><strong>Declination of the Target</strong> — Sight line 4</li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li>Your estimated position is on Desmos lines <strong>75–76</strong></li>
+      </ol>
+      <p class="note">Use <strong>stars</strong> with this tool (not planets). Planet tables in the in-game almanac are for the mod’s solar system / New sky workflow; this page only has fixed star SHA/Dec for the Real skybox.</p>
+    </aside>
 
-  <section class="card">
-    <h2>2. Sights (3 Desmos targets)</h2>
-    <p class="hint">Pick a star and altitude per sight. Altitude = degrees + arcminutes.</p>
-    <div class="readings" id="readings"></div>
-  </section>
+    <div class="content">
+      <section class="card">
+        <h2>1. Global time + DR</h2>
+        <p class="hint">Global h/m/s fills all 3 sights; refine each sight afterward.</p>
+        <div class="row">
+          <div>
+            <label for="day">Day</label>
+            <input id="day" type="number" value="1" min="0" />
+          </div>
+          <div>
+            <label for="hour">Hour</label>
+            <input id="hour" type="number" value="0" min="0" max="23" />
+          </div>
+          <div>
+            <label for="minute">Minute</label>
+            <input id="minute" type="number" value="0" min="0" max="59" />
+          </div>
+          <div>
+            <label for="second">Second</label>
+            <input id="second" type="number" value="0" min="0" max="59" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="yearLen">Year length</label>
+            <input id="yearLen" type="number" value="365" min="1" />
+          </div>
+          <div>
+            <label for="siderial">Sidereal rotation</label>
+            <select id="siderial">
+              <option value="1" selected>On</option>
+              <option value="0">Off</option>
+            </select>
+          </div>
+          <div>
+            <label for="drLat">DR Latitude (°)</label>
+            <input id="drLat" type="number" step="0.01" value="0" />
+          </div>
+          <div>
+            <label for="drLon">DR Longitude (°)</label>
+            <input id="drLon" type="number" step="0.01" value="0" />
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="epochYear">Stellarium year (epoch Sep 22)</label>
+            <input id="epochYear" type="number" value="" min="1900" max="2100" />
+          </div>
+        </div>
+        <div class="out" id="ariesOut">…</div>
+      </section>
+
+      <section class="card">
+        <h2>2. Sights (3 Desmos targets)</h2>
+        <p class="hint">Pick a star and target altitude per sight (degrees + arcminutes).</p>
+        <div class="readings" id="readings"></div>
+      </section>
+    </div>
+  </div>
 </main>
 
 <script src="nav_stars.js"></script>
@@ -362,7 +431,7 @@ function buildReadingCard(i) {
       <div><label>M</label><input data-k="minute" type="number" min="0" max="59" value="0" /></div>
       <div><label>S</label><input data-k="second" type="number" min="0" max="59" value="0" /></div>
     </div>
-    <label>Altitude (deg + '/60)</label>
+    <label>Target Altitude (deg + '/60)</label>
     <div class="alt-sep">
       <input data-k="altDeg" type="number" step="1" placeholder="deg" />
       <span>+</span>
