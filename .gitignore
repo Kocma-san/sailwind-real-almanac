@@ -1,0 +1,7 @@
+# HYG raw dump (~13 MB) — regenerate nav_stars via extract_nav_stars.py
+data/hyg_v44.csv.gz
+
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
