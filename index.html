@@ -421,10 +421,15 @@
         </div>
         <div class="row">
           <div>
-            <label for="epochYear">Stellarium year (epoch Sep 22)</label>
-            <input id="epochYear" type="number" value="" min="1900" max="2100" />
+            <label for="stellOffset">Stellarium fine-tune (h)</label>
+            <input id="stellOffset" type="number" step="0.05" value="0" title="Optional residual offset after Aries→UT mapping" />
           </div>
         </div>
+        <p class="hint" style="margin-top:0">
+          Stellarium time from game Aries (author: day&nbsp;0 / hour&nbsp;0 = RA&nbsp;0° over lon&nbsp;0°, UT).
+          Ref when Aries=0: <strong>2026-07-26 03:44:33 UT</strong>.
+          Game day/night still follows Sailwind’s sun — only stars are meant to match.
+        </p>
         <div>
           <label for="desmosApiKey">Desmos API key</label>
           <div class="api-key-row">
@@ -536,28 +541,38 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-function realEarthDate(day, hour, minute, second, yearLen, epochYear) {
-  const gameDays = day + hour / 24 + minute / 1440 + second / 86400;
-  const earthDaysFromEpoch = (gameDays / yearLen) * 365.25;
-  const epoch = new Date(Date.UTC(epochYear, 8, 22, 0, 0, 0));
-  return { ms: epoch.getTime() + earthDaysFromEpoch * 86400000 };
+/**
+ * Realistic Skies (author): Real skybox starts with RA 0° over longitude 0°.
+ * Game day 0 / hour 0 ⇒ Aries rotation 0. One Earth UT when GHA Aries ≈ 0:
+ * 2026-07-26 03:44:33 UT.
+ */
+const ARIES_ZERO_UT_MS = Date.UTC(2026, 6, 26, 3, 44, 33);
+/** Earth GHA Aries advances ~15.04107° per mean solar hour. */
+const GHA_DEG_PER_MEAN_SOLAR_HOUR = 15.04106864;
+
+/** Stellarium instant from game GHA Aries (degrees) + optional fine-tune hours. */
+function stellariumFromAries(ariesDeg, offsetHours = 0) {
+  const aries = ((ariesDeg % 360) + 360) % 360;
+  const hours = aries / GHA_DEG_PER_MEAN_SOLAR_HOUR;
+  return ARIES_ZERO_UT_MS + (hours + offsetHours) * 3600000;
 }
 
-function formatLocalStamp(ms) {
+function formatStellariumStamp(ms) {
   const dt = new Date(ms);
   const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "local";
   const pad = (n) => String(n).padStart(2, "0");
-  return {
-    tz,
-    line: `${MONTHS[dt.getMonth()]} ${dt.getDate()}, ${dt.getFullYear()}  ${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`,
-  };
+  const ut =
+    `${MONTHS[dt.getUTCMonth()]} ${dt.getUTCDate()}, ${dt.getUTCFullYear()}  ` +
+    `${pad(dt.getUTCHours())}:${pad(dt.getUTCMinutes())}:${pad(dt.getUTCSeconds())} UT`;
+  const local =
+    `${MONTHS[dt.getMonth()]} ${dt.getDate()}, ${dt.getFullYear()}  ` +
+    `${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+  return { tz, ut, local };
 }
 
-/** localStorage key for the user's Desmos API key (never committed). */
-const DESMOS_KEY_STORAGE = "desmos-api-key";
-
-const STORAGE_KEY = "sailwind-real-almanac-v4";
+const STORAGE_KEY = "sailwind-real-almanac-v6";
 const GUIDE_KEY = "sailwind-real-almanac-guide-collapsed";
+const DESMOS_KEY_STORAGE = "desmos-api-key";
 const N = 3;
 let activeReading = 0;
 let syncingFromGlobal = false;
@@ -581,7 +596,7 @@ const yearLenEl = document.getElementById("yearLen");
 const siderialEl = document.getElementById("siderial");
 const drLatEl = document.getElementById("drLat");
 const drLonEl = document.getElementById("drLon");
-const epochYearEl = document.getElementById("epochYear");
+const stellOffsetEl = document.getElementById("stellOffset");
 const desmosApiKeyEl = document.getElementById("desmosApiKey");
 const desmosApiApply = document.getElementById("desmosApiApply");
 const ariesOut = document.getElementById("ariesOut");
@@ -595,7 +610,7 @@ const guideToggle = document.getElementById("guideToggle");
 const globalFields = {
   day: dayEl, hour: hourEl, minute: minuteEl, second: secondEl,
   yearLen: yearLenEl, siderial: siderialEl,
-  drLat: drLatEl, drLon: drLonEl, epochYear: epochYearEl,
+  drLat: drLatEl, drLon: drLonEl, stellOffset: stellOffsetEl,
 };
 
 const stars = ((window.NAV_STARS && window.NAV_STARS.stars) || [])
@@ -792,11 +807,12 @@ function refresh() {
   const second = +secondEl.value || 0;
   const yearLen = +yearLenEl.value || 92;
   const siderial = siderialEl.value === "1";
-  const epochYear = +epochYearEl.value || new Date().getFullYear();
+  const stellOffset = +stellOffsetEl.value || 0;
 
   const base = ghaAriesAtHour(day, hour, yearLen, siderial);
   const corr = ghaAriesMinSec(minute, second, yearLen, siderial);
-  const stamp = formatLocalStamp(realEarthDate(day, hour, minute, second, yearLen, epochYear).ms);
+  const ariesTot = mod360(base + corr);
+  const stamp = formatStellariumStamp(stellariumFromAries(ariesTot, stellOffset));
   const lat = drLatEl.value;
   const lon = drLonEl.value;
   const latLabel = (+lat >= 0) ? `${lat}°N` : `${Math.abs(+lat)}°S`;
@@ -804,8 +820,9 @@ function refresh() {
 
   ariesOut.innerHTML =
     `<span class="ok">Aries (global time) = ${ariesToDesmos(base, corr)}</span>\n` +
-    `<span class="ok">Stellarium</span> (${stamp.tz})  ${latLabel}, ${lonLabel}\n` +
-    `  <span class="ok">${stamp.line}</span>`;
+    `<span class="ok">Stellarium</span>  ${latLabel}, ${lonLabel}\n` +
+    `  <span class="ok">${stamp.ut}</span>\n` +
+    `  local (${stamp.tz})  ${stamp.local}`;
 
   readings.forEach((r) => {
     const { baseR, corrR, star, alt } = sightPayload(r, yearLen, siderial);
@@ -1122,7 +1139,9 @@ function saveState() {
 
 function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) raw = localStorage.getItem("sailwind-real-almanac-v5");
+    if (!raw) raw = localStorage.getItem("sailwind-real-almanac-v4");
     if (!raw) {
       copyGlobalTimeToReadings();
       return;
@@ -1165,8 +1184,6 @@ function onReadingInput() {
   saveState();
   refresh();
 }
-
-if (!epochYearEl.value) epochYearEl.value = String(new Date().getFullYear());
 
 for (let i = 0; i < N; i++) buildReadingCard(i);
 setActiveReading(0);
