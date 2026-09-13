@@ -143,6 +143,15 @@
       color: var(--ink);
       margin-bottom: 0.55rem;
     }
+    input[type="number"] {
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
     .row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
     .row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; }
     .readings {
@@ -379,6 +388,15 @@
     <div class="content">
       <section class="card">
         <h2>1. Global time + DR</h2>
+        <div class="row">
+          <div>
+            <label for="star_set">Starset</label>
+            <select id="star_set">
+              <option value="real_stars" selected>Real Stars</option>
+              <option value="modded_stars">Modded Stars</option>
+            </select>
+          </div>
+        </div>
         <p class="hint">Global h/m/s fills all 3 sights; refine each sight afterward. Graph updates as you type.</p>
         <div class="row">
           <div>
@@ -468,6 +486,7 @@
 </main>
 
 <script src="nav_stars.js"></script>
+<script src="modded_stars.js"></script>
 <script src="desmos-lop-state.js"></script>
 <script>
 function mod360(x) {
@@ -588,6 +607,7 @@ const DESMOS_IDS = {
   ],
 };
 
+const starsetEl = document.getElementById("star_set");
 const dayEl = document.getElementById("day");
 const hourEl = document.getElementById("hour");
 const minuteEl = document.getElementById("minute");
@@ -608,6 +628,7 @@ const fixOut = document.getElementById("fixOut");
 const guideToggle = document.getElementById("guideToggle");
 
 const globalFields = {
+  starset: starsetEl,
   day: dayEl, hour: hourEl, minute: minuteEl, second: secondEl,
   yearLen: yearLenEl, siderial: siderialEl,
   drLat: drLatEl, drLon: drLonEl, stellOffset: stellOffsetEl,
@@ -616,6 +637,18 @@ const globalFields = {
 const stars = ((window.NAV_STARS && window.NAV_STARS.stars) || [])
   .slice()
   .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
+
+const modded_stars = ((window.MODDED_STARS && window.MODDED_STARS.stars) || [])
+  .slice();
+
+function getStarType(){
+  return starsetEl.value === 'real_stars' ? stars : modded_stars;
+}
+
+starsetEl.addEventListener("change", () => {
+  readings.forEach(r => fillStarSelect(r.star))
+  refresh();
+})
 
 const readings = [];
 let desmosCalc = null;
@@ -650,14 +683,17 @@ function fillStarSelect(select, selectedName) {
   empty.value = "";
   empty.textContent = "— star —";
   select.appendChild(empty);
-  stars.forEach((s, i) => {
+  const starSet = getStarType();
+  starSet.forEach((s, i) => {
     const opt = document.createElement("option");
     opt.value = String(i);
-    opt.textContent = `${s.name} (mag ${s.mag.toFixed(2)})`;
+    opt.textContent = s.mag !== undefined
+      ? `${s.name} (mag ${s.mag.toFixed(2)})`
+      : s.name;
     select.appendChild(opt);
   });
   if (selectedName) {
-    const idx = stars.findIndex((s) => s.name === selectedName);
+    const idx = starSet.findIndex((s) => s.name === selectedName);
     if (idx >= 0) select.value = String(idx);
   }
 }
@@ -795,7 +831,7 @@ function sightPayload(r, yearLen, siderial) {
   const baseR = ghaAriesAtHour(d, h, yearLen, siderial);
   const corrR = ghaAriesMinSec(mi, se, yearLen, siderial);
   const starIdx = r.star.value === "" ? -1 : +r.star.value;
-  const star = starIdx >= 0 ? stars[starIdx] : null;
+  const star = starIdx >= 0 ? getStarType()[starIdx] : null;
   const alt = partsToDeg(r.altDeg.value, r.altMin.value);
   return { baseR, corrR, star, alt };
 }
@@ -1125,7 +1161,7 @@ function saveState() {
     const data = { activeReading };
     for (const [k, el] of Object.entries(globalFields)) data[k] = el.value;
     data.readings = readings.map((r) => ({
-      starName: r.star.value === "" ? "" : (stars[+r.star.value]?.name || ""),
+      starName: r.star.value === "" ? "" : (getStarType()[+r.star.value]?.name || ""),
       day: r.day.value,
       hour: r.hour.value,
       minute: r.minute.value,
