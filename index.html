@@ -367,7 +367,7 @@
       </div>
       <div class="guide-body">
         <ol>
-          <li>Select your starset<br />("Real Stars" if Star Type = Real; "Modded Stars" if Star Type = New)</li>
+          <li>Select your star type</li>
           <li>Enter current date / time</li>
           <li>Enter best dead reckoning (DR)</li>
           <li>Choose <strong>2 stars</strong> (~90° apart) or <strong>3 stars</strong> (~120° apart), heights ~15–65°.<br />
@@ -391,10 +391,10 @@
         <h2>1. Global time + DR</h2>
         <div class="row">
           <div>
-            <label for="star_set">Starset</label>
-            <select id="star_set">
-              <option value="real_stars" selected>Real Stars</option>
-              <option value="modded_stars">Modded Stars</option>
+            <label for="star_type">Star Type</label>
+            <select id="star_type">
+              <option value="real_stars" selected>Real</option>
+              <option value="modded_stars">New</option>
             </select>
           </div>
         </div>
@@ -608,7 +608,7 @@ const DESMOS_IDS = {
   ],
 };
 
-const starsetEl = document.getElementById("star_set");
+const startypeEl = document.getElementById("star_type");
 const dayEl = document.getElementById("day");
 const hourEl = document.getElementById("hour");
 const minuteEl = document.getElementById("minute");
@@ -629,7 +629,7 @@ const fixOut = document.getElementById("fixOut");
 const guideToggle = document.getElementById("guideToggle");
 
 const globalFields = {
-  starset: starsetEl,
+  startype: startypeEl,
   day: dayEl, hour: hourEl, minute: minuteEl, second: secondEl,
   yearLen: yearLenEl, siderial: siderialEl,
   drLat: drLatEl, drLon: drLonEl, stellOffset: stellOffsetEl,
@@ -643,10 +643,10 @@ const modded_stars = ((window.MODDED_STARS && window.MODDED_STARS.stars) || [])
   .slice();
 
 function getStarType(){
-  return starsetEl.value === 'real_stars' ? stars : modded_stars;
+  return startypeEl.value === 'real_stars' ? stars : modded_stars;
 }
 
-starsetEl.addEventListener("change", () => {
+startypeEl.addEventListener("change", () => {
   readings.forEach(r => fillStarSelect(r.star))
   refresh();
 })
@@ -684,8 +684,8 @@ function fillStarSelect(select, selectedName) {
   empty.value = "";
   empty.textContent = "— star —";
   select.appendChild(empty);
-  const starSet = getStarType();
-  starSet.forEach((s, i) => {
+  const starType = getStarType();
+  starType.forEach((s, i) => {
     const opt = document.createElement("option");
     opt.value = String(i);
     opt.textContent = s.mag !== undefined
@@ -694,7 +694,7 @@ function fillStarSelect(select, selectedName) {
     select.appendChild(opt);
   });
   if (selectedName) {
-    const idx = starSet.findIndex((s) => s.name === selectedName);
+    const idx = starType.findIndex((s) => s.name === selectedName);
     if (idx >= 0) select.value = String(idx);
   }
 }
@@ -855,9 +855,9 @@ function refresh() {
   const latLabel = (+lat >= 0) ? `${lat}°N` : `${Math.abs(+lat)}°S`;
   const lonLabel = (+lon >= 0) ? `${lon}°E` : `${Math.abs(+lon)}°W`;
 
-  const currentStarMode = starsetEl.value;
+  const currentStarType = startypeEl.value;
   document.querySelectorAll(".realstars-only").forEach((elem) => {
-    elem.hidden = currentStarMode !== "real_stars";
+    elem.hidden = currentStarType !== "real_stars";
   })
 
   ariesOut.innerHTML =
